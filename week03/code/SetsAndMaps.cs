@@ -21,8 +21,31 @@ public static class SetsAndMaps
     /// <param name="words">An array of 2-character words (lowercase, no duplicates)</param>
     public static string[] FindPairs(string[] words)
     {
-        // TODO Problem 1 - ADD YOUR CODE HERE
-        return [];
+        // Store all words in a HashSet so we can check for a reversed
+        // word in O(1) average time.
+        var wordSet = new HashSet<string>(words);
+
+        var pairs = new List<string>();
+
+        foreach (var word in words)
+        {
+            // Since every word has exactly 2 characters,
+            // create the reversed word directly.
+            string reversed = new string(new[] { word[1], word[0] });
+
+            // Make sure a word like "aa" does not match itself.
+            if (word != reversed && wordSet.Remove(word) && wordSet.Contains(reversed))
+            {
+                // Add the symmetric pair.
+                pairs.Add($"{word} & {reversed}");
+
+                // Remove the reversed word so we do not process
+                // the same pair again.
+                wordSet.Remove(reversed);
+            }
+        }
+
+        return pairs.ToArray();
     }
 
     /// <summary>
@@ -39,10 +62,22 @@ public static class SetsAndMaps
     public static Dictionary<string, int> SummarizeDegrees(string filename)
     {
         var degrees = new Dictionary<string, int>();
+
         foreach (var line in File.ReadLines(filename))
         {
             var fields = line.Split(",");
-            // TODO Problem 2 - ADD YOUR CODE HERE
+
+            // The degree is in the 4th column.
+            string degree = fields[3].Trim();
+
+            if (degrees.ContainsKey(degree))
+            {
+                degrees[degree]++;
+            }
+            else
+            {
+                degrees[degree] = 1;
+            }
         }
 
         return degrees;
@@ -66,8 +101,46 @@ public static class SetsAndMaps
     /// </summary>
     public static bool IsAnagram(string word1, string word2)
     {
-        // TODO Problem 3 - ADD YOUR CODE HERE
-        return false;
+        // Ignore spaces and capitalization.
+        string first = word1.Replace(" ", "").ToLower();
+        string second = word2.Replace(" ", "").ToLower();
+
+        // Different lengths cannot be anagrams.
+        if (first.Length != second.Length)
+        {
+            return false;
+        }
+
+        var letters = new Dictionary<char, int>();
+
+        foreach (char letter in first)
+        {
+            if (letters.ContainsKey(letter))
+            {
+                letters[letter]++;
+            }
+            else
+            {
+                letters[letter] = 1;
+            }
+        }
+
+        foreach (char letter in second)
+        {
+            if (!letters.ContainsKey(letter))
+            {
+                return false;
+            }
+
+            letters[letter]--;
+
+            if (letters[letter] < 0)
+            {
+                return false;
+            }
+        }
+
+        return true;
     }
 
     /// <summary>
@@ -86,21 +159,34 @@ public static class SetsAndMaps
     /// </summary>
     public static string[] EarthquakeDailySummary()
     {
-        const string uri = "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+        const string uri =
+            "https://earthquake.usgs.gov/earthquakes/feed/v1.0/summary/all_day.geojson";
+
         using var client = new HttpClient();
         using var getRequestMessage = new HttpRequestMessage(HttpMethod.Get, uri);
-        using var jsonStream = client.Send(getRequestMessage).Content.ReadAsStream();
+        using var jsonStream =
+            client.Send(getRequestMessage).Content.ReadAsStream();
+
         using var reader = new StreamReader(jsonStream);
         var json = reader.ReadToEnd();
-        var options = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
 
-        var featureCollection = JsonSerializer.Deserialize<FeatureCollection>(json, options);
+        var options = new JsonSerializerOptions
+        {
+            PropertyNameCaseInsensitive = true
+        };
 
-        // TODO Problem 5:
-        // 1. Add code in FeatureCollection.cs to describe the JSON using classes and properties 
-        // on those classes so that the call to Deserialize above works properly.
-        // 2. Add code below to create a string out each place a earthquake has happened today and its magitude.
-        // 3. Return an array of these string descriptions.
-        return [];
+        var featureCollection =
+            JsonSerializer.Deserialize<FeatureCollection>(json, options);
+
+        var results = new List<string>();
+
+        foreach (var feature in featureCollection.Features)
+        {
+            results.Add(
+                $"{feature.Properties.Place} - Mag {feature.Properties.Mag}"
+            );
+        }
+
+        return results.ToArray();
     }
 }
